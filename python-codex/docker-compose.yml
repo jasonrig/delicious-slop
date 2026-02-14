@@ -1,0 +1,12 @@
+services:
+  codex:
+    image: ${CODEX_IMAGE_NAME:-codex-ubuntu}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - ${CODEX_WORKSPACE:-.}:/workspace
+      - ${CODEX_AUTH_FILE}:/home/codex/.codex/auth.json:${CODEX_AUTH_MODE:-rw}
