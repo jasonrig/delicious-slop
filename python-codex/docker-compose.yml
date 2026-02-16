@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        CODEX_UID: ${CODEX_UID:-1000}
+        CODEX_GID: ${CODEX_GID:-1000}
     stdin_open: true
     tty: true
     working_dir: /workspace
