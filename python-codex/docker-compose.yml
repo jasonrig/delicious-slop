@@ -13,3 +13,38 @@ services:
     volumes:
       - ${CODEX_WORKSPACE:-.}:/workspace
       - ${CODEX_AUTH_FILE}:/home/codex/.codex/auth.json:${CODEX_AUTH_MODE:-rw}
+      - ssh_agent_sock:/run/codex-ssh-agent
+
+  ssh-agent-relay:
+    profiles: ["ssh-agent"]
+    image: ${CODEX_IMAGE_NAME:-codex-ubuntu}
+    user: "0:0"
+    network_mode: "none"
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - |
+        set -euo pipefail
+        if [[ ! -S /run/host-ssh-agent.sock ]]; then
+          echo "error: host ssh-agent socket is not available at /run/host-ssh-agent.sock" >&2
+          exit 1
+        fi
+        rm -f /run/codex-ssh-agent/agent.sock
+        umask 0177
+        exec socat \
+          UNIX-LISTEN:/run/codex-ssh-agent/agent.sock,fork,user="${CODEX_UID:-1000}",group="${CODEX_GID:-1000}" \
+          UNIX-CONNECT:/run/host-ssh-agent.sock
+    volumes:
+      - ${HOST_SSH_AUTH_SOCK:-/tmp/codex-no-ssh-agent.sock}:/run/host-ssh-agent.sock
+      - ssh_agent_sock:/run/codex-ssh-agent
+
+volumes:
+  ssh_agent_sock:
